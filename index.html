@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Personal Debt & Loan Trackerby Gibo</title>
+  <title>PersonalLoan Monitoring</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -73,7 +73,7 @@
           </div>
           <div>
             <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center flex-wrap gap-2">
-              <span>Personal Debt & Loan Tracker</span>
+              <span>Personal Debt & Loan Tracker by GIBO</span>
               <span id="cloud-status-badge" class="text-[10px] bg-blue-500/20 text-blue-300 px-2.5 py-0.5 rounded-full border border-blue-500/30 font-medium inline-flex items-center gap-1">
                 <i class="fa-solid fa-spinner fa-spin"></i> Connecting Cloud...
               </span>
@@ -196,15 +196,15 @@
 
       <!-- ANALYTICS CHARTS SECTION -->
       <section aria-label="Analytics Charts" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Doughnut/Pie Chart: Remaining Balance by Category -->
+        <!-- Doughnut/Pie Chart: Debt Breakdown by Category -->
         <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-5 flex flex-col shadow-xl">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h2 class="text-sm font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-chart-pie text-emerald-400"></i>
-                Remaining Balance by Category
+                Debt Breakdown by Category
               </h2>
-              <p class="text-[11px] text-slate-400">Distribution of active debt across your custom categories</p>
+              <p class="text-[11px] text-slate-400">Remaining debt balances grouped by your custom categories</p>
             </div>
             <span class="text-[10px] text-slate-300 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700">Custom Categories</span>
           </div>
@@ -213,17 +213,17 @@
           </div>
         </div>
 
-        <!-- Bar Chart: Installment & Balance Comparison -->
+        <!-- Bar Chart: Installment Payment Comparison -->
         <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-5 flex flex-col shadow-xl">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h2 class="text-sm font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-chart-column text-blue-400"></i>
-                Installment & Balance Comparison
+                Installment Payment Comparison
               </h2>
-              <p class="text-[11px] text-slate-400">Active debts comparing installment due vs. remaining balance</p>
+              <p class="text-[11px] text-slate-400">Recurring installment amounts to pay across active loans</p>
             </div>
-            <span class="text-[10px] text-slate-300 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700">Active Debts</span>
+            <span class="text-[10px] text-slate-300 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700">Active Loans</span>
           </div>
           <div class="relative flex-1 min-h-[230px] flex items-center justify-center">
             <canvas id="comparisonBarChart"></canvas>
@@ -308,7 +308,6 @@
                 <option value="Weekly">Weekly</option>
                 <option value="Bi-Weekly">Bi-Weekly</option>
                 <option value="Monthly">Monthly</option>
-                <option value="Custom">Custom</option>
               </select>
 
               <!-- Sort Dropdown -->
@@ -413,10 +412,16 @@
     <footer class="border-t border-slate-800 py-4 px-4 sm:px-6 lg:px-8 text-xs text-slate-500 mt-8">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
         <div>
-          Personal Debt & Loan Tracker &copy; 2026 &bull; Powered by Supabase Cloud & Local Backup
+          Personal Debt &amp; Loan Monitoring Tracker &copy; 2026 &bull; Cloud Synced with Supabase
         </div>
-        <button type="button" onclick="openClearAllModal()" class="text-rose-400 hover:text-rose-300 text-[11px] font-medium underline transition">
-          Clear All Cloud Data
+        <button
+          type="button"
+          onclick="exportDataJSON()"
+          class="inline-flex items-center gap-1.5 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-[11px] font-medium transition"
+          title="Download JSON backup of your records"
+        >
+          <i class="fa-solid fa-download text-blue-400"></i>
+          <span>Backup JSON</span>
         </button>
       </div>
     </footer>
@@ -473,7 +478,7 @@
 
           <!-- Inline Create New Category -->
           <div>
-            <label for="inline-new-category-input" class="block text-[11px] text-slate-400 mb-1">+ Create Category on the Spot</label>
+            <label for="inline-new-category-input" class="block text-[11px] text-slate-400 mb-1">+ New Category</label>
             <div class="flex items-center gap-2">
               <input
                 type="text"
@@ -496,7 +501,7 @@
         <!-- Principal Amount & Paid So Far (when adding new debt) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label for="form-original-amount" class="block text-xs font-medium text-slate-300 mb-1">Principal Amount (₱) *</label>
+            <label for="form-original-amount" class="block text-xs font-medium text-slate-300 mb-1">Total Principal (₱) *</label>
             <input
               type="number"
               id="form-original-amount"
@@ -556,7 +561,6 @@
               <option value="Weekly">Weekly</option>
               <option value="Bi-Weekly">Bi-Weekly</option>
               <option value="Monthly" selected>Monthly</option>
-              <option value="Custom">Custom</option>
             </select>
           </div>
         </div>
@@ -786,25 +790,6 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- MODAL 6: CONFIRM CLEAR ALL CLOUD DATA (REPLACES NATIVE CONFIRM())     -->
-  <!-- ===================================================================== -->
-  <div id="clear-all-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center">
-      <div class="w-12 h-12 bg-rose-500/10 text-rose-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-rose-500/20">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-      </div>
-      <h3 class="text-base font-bold text-white">Clear All Debt Records?</h3>
-      <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
-        Are you sure you want to permanently delete all debt records from your Supabase cloud database and local backup? This action cannot be undone.
-      </p>
-      <div class="flex items-center justify-center gap-3 mt-6">
-        <button type="button" onclick="closeClearAllModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition">Cancel</button>
-        <button type="button" onclick="executeClearAllData()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition">Yes, Clear All Data</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
   <!-- JAVASCRIPT APPLICATION LOGIC & SUPABASE INTEGRATION                   -->
   <!-- ===================================================================== -->
   <script>
@@ -816,7 +801,8 @@
 
     const STORAGE_KEYS = {
       DEBTS: 'debt_tracker_local_data_v2',
-      CATEGORIES: 'debt_tracker_custom_categories',
+      CATEGORIES: 'custom_debt_categories',
+      LEGACY_CATEGORIES: 'debt_tracker_custom_categories',
       FREQ_MAP: 'debt_tracker_freq_map'
     };
 
@@ -880,14 +866,34 @@
       return parsed.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
-    const escapeHTML = (str) => {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    // Advance Next Due Date automatically based on Daily, Weekly, Bi-Weekly, or Monthly schedule
+    const advanceDueDateByFrequency = (currentDueDateStr, frequency, fallbackDateStr) => {
+      const baseDate = parseLocalISODate(currentDueDateStr) || parseLocalISODate(fallbackDateStr) || parseLocalISODate(getTodayISODate());
+      if (!baseDate || isNaN(baseDate.getTime())) return currentDueDateStr || getTodayISODate();
+
+      const nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+      const freq = (frequency || 'Monthly').trim();
+
+      if (freq === 'Daily') {
+        nextDate.setDate(nextDate.getDate() + 1);
+      } else if (freq === 'Weekly') {
+        nextDate.setDate(nextDate.getDate() + 7);
+      } else if (freq === 'Bi-Weekly') {
+        nextDate.setDate(nextDate.getDate() + 14);
+      } else if (freq === 'Monthly') {
+        const targetYear = nextDate.getFullYear();
+        const targetMonth = nextDate.getMonth() + 1;
+        const originalDay = nextDate.getDate();
+        const daysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+        nextDate.setFullYear(targetYear, targetMonth, Math.min(originalDay, daysInTargetMonth));
+      } else {
+        return currentDueDateStr || getTodayISODate();
+      }
+
+      const y = nextDate.getFullYear();
+      const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+      const d = String(nextDate.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     };
 
     // Toast Notification Helper (100% English)
@@ -929,10 +935,18 @@
     const loadCustomCategoriesFromStorage = () => {
       try {
         const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-        const parsed = stored ? JSON.parse(stored) : [];
-        customCategories = Array.isArray(parsed)
-          ? [...new Set(parsed.map(c => String(c).trim()).filter(Boolean))]
-          : [];
+        const legacyStored = localStorage.getItem(STORAGE_KEYS.LEGACY_CATEGORIES);
+        const parsedPrimary = stored ? JSON.parse(stored) : [];
+        const parsedLegacy = legacyStored ? JSON.parse(legacyStored) : [];
+        const combined = [
+          ...(Array.isArray(parsedPrimary) ? parsedPrimary : []),
+          ...(Array.isArray(parsedLegacy) ? parsedLegacy : [])
+        ];
+        customCategories = [...new Set(combined.map(c => String(c).trim()).filter(Boolean))];
+        if (parsedLegacy.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(customCategories));
+          localStorage.removeItem(STORAGE_KEYS.LEGACY_CATEGORIES);
+        }
       } catch (e) {
         customCategories = [];
       }
@@ -1453,9 +1467,15 @@
 
       const barLabels = activeDebts.map(d =>
         d.lenderName.length > 14 ? d.lenderName.substring(0, 12) + '...' : d.lenderName
+      // 2. Bar Chart: Installment Payment Comparison
+      const activeDebts = debtsState
+        .map(d => ({ ...d, calc: computeDebtDetails(d) }))
+        .filter(d => d.calc.remainingBalance > 0);
+
+      const barLabels = activeDebts.map(d =>
+        d.lenderName.length > 16 ? d.lenderName.substring(0, 14) + '...' : d.lenderName
       );
       const installmentValues = activeDebts.map(d => d.calc.monthlyPayment);
-      const balanceValues = activeDebts.map(d => d.calc.remainingBalance);
 
       const barCtx = document.getElementById('comparisonBarChart');
       if (barCtx) {
@@ -1463,18 +1483,13 @@
         barChartInstance = new Chart(barCtx.getContext('2d'), {
           type: 'bar',
           data: {
-            labels: barLabels.length > 0 ? barLabels : ['No Active Debts'],
+            labels: barLabels.length > 0 ? barLabels : ['No Active Loans'],
             datasets: [
               {
-                label: 'Installment Amount',
+                label: 'Amount to Pay / Installment',
                 data: installmentValues.length > 0 ? installmentValues : [0],
-                backgroundColor: '#f59e0b',
-                borderRadius: 6
-              },
-              {
-                label: 'Remaining Balance',
-                data: balanceValues.length > 0 ? balanceValues : [0],
                 backgroundColor: '#3b82f6',
+                hoverBackgroundColor: '#60a5fa',
                 borderRadius: 6
               }
             ]
@@ -1484,12 +1499,11 @@
             maintainAspectRatio: false,
             plugins: {
               legend: {
-                position: 'bottom',
-                labels: { color: '#cbd5e1', font: { family: 'Inter', size: 11 }, padding: 12 }
+                display: false
               },
               tooltip: {
                 callbacks: {
-                  label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
+                  label: (ctx) => ` Installment Amount: ${formatCurrency(ctx.raw)}`
                 }
               }
             },
@@ -1763,7 +1777,7 @@
                     ? 'bg-amber-400 text-slate-950'
                     : 'bg-slate-700 text-slate-200'
                 }">
-                  ${isFirstTarget ? '#1 Smallest / Pay First' : `#${index + 1}`}
+                  ${isFirstTarget ? '#1 Pay First' : `#${index + 1}`}
                 </span>
                 <h3 class="font-bold text-xs text-white truncate" title="${escapeHTML(debt.lenderName)}">
                   ${escapeHTML(debt.lenderName)}
@@ -2029,7 +2043,7 @@
       e.preventDefault();
       const debtId = document.getElementById('payment-debt-id').value;
       const amount = parseFloat(document.getElementById('payment-amount').value);
-      const date = document.getElementById('payment-date').value;
+      const date = document.getElementById('payment-date').value || getTodayISODate();
       const notes = document.getElementById('payment-notes').value.trim();
 
       if (isNaN(amount) || amount <= 0) {
@@ -2044,20 +2058,30 @@
       debt.payments.push({
         id: 'pay_' + Date.now(),
         amount,
-        date: date || getTodayISODate(),
+        date,
         notes: notes || 'Payment Logged'
       });
 
+      const updatedCalc = computeDebtDetails(debt);
+
+      // Automatically advance Next Due Date according to dueFrequency when balance remains
+      if (updatedCalc.remainingBalance > 0) {
+        debt.nextDueDate = advanceDueDateByFrequency(
+          debt.nextDueDate,
+          debt.dueFrequency || 'Monthly',
+          date
+        );
+      }
+
       await saveSingleDebtToCloud(debt);
 
-      const updatedCalc = computeDebtDetails(debt);
       if (updatedCalc.remainingBalance <= 0) {
         if (typeof confetti === 'function') {
           confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
         }
         showToast(`Congratulations! "${debt.lenderName}" is now fully paid!`);
       } else {
-        showToast(`Logged payment of ${formatCurrency(amount)} successfully!`);
+        showToast(`Logged ${formatCurrency(amount)}! Next due: ${formatDate(debt.nextDueDate)}`);
       }
 
       closePaymentModal();
@@ -2238,7 +2262,7 @@
     };
 
     // =========================================================================
-    // 10. DELETE SINGLE DEBT & CLEAR ALL CLOUD DATA MODALS
+    // 10. DELETE SINGLE DEBT MODAL
     // =========================================================================
     const openDeleteModal = (debtId) => {
       const debt = debtsState.find(d => d.id === debtId);
@@ -2259,33 +2283,6 @@
       await deleteDebtFromCloud(activeDeleteDebtId);
       showToast('Debt record permanently deleted.');
       closeDeleteModal();
-    };
-
-    const openClearAllModal = () => {
-      document.getElementById('clear-all-modal').classList.remove('hidden');
-    };
-
-    const closeClearAllModal = () => {
-      document.getElementById('clear-all-modal').classList.add('hidden');
-    };
-
-    const executeClearAllData = async () => {
-      closeClearAllModal();
-      const snapshot = [...debtsState];
-      for (const debt of snapshot) {
-        if (supabaseClient) {
-          try {
-            await supabaseClient.from('debts').delete().eq('id', debt.id);
-          } catch (e) {
-            console.error('Error clearing cloud record:', e);
-          }
-        }
-      }
-      debtsState = [];
-      localStorage.removeItem(STORAGE_KEYS.DEBTS);
-      localStorage.removeItem(STORAGE_KEYS.FREQ_MAP);
-      renderApp();
-      showToast('All debt records have been cleared.', 'error');
     };
 
     // =========================================================================
