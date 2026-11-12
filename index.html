@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Personal Debt & Loan Tracker</title>
+  <title>Personal Debt & Loan Tracker - Payoff Strategy & Ledger</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -15,12 +15,20 @@
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
           },
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
         },
       },
     }
   </script>
   
-  <!-- FontAwesome Icons -->
+  <!-- FontAwesome Icons CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <!-- Google Fonts (Inter) -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -28,6 +36,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Supabase JS Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <style>
     body {
@@ -49,9 +59,10 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #64748b;
     }
+    [x-cloak] { display: none !important; }
   </style>
 </head>
-<body class="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+<body class="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between selection:bg-blue-500 selection:text-white antialiased">
 
   <!-- Main Application Container -->
   <div id="app" class="flex-1 flex flex-col">
@@ -59,18 +70,21 @@
     <!-- Top Navigation Header -->
     <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/80 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
-          <i class="fa-solid fa-wallet"></i>
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-teal-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+          <i class="fa-solid fa-scale-balanced"></i>
         </div>
         <div>
           <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
             Personal Debt & Loan Tracker
-            <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">Supabase Cloud Active</span>
+            <span id="cloud-status-badge" class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/30 font-medium">
+              <i class="fa-solid fa-cloud-check mr-1"></i> Cloud Active
+            </span>
           </h1>
-          <p class="text-xs text-slate-400">Monitor obligations, upcoming due dates, payment history, and progress</p>
+          <p class="text-xs text-slate-400">Monitor loans, daily/weekly due dates, payment ledger & payoff strategy</p>
         </div>
       </div>
 
+      <!-- Action Buttons -->
       <div class="flex items-center flex-wrap gap-2">
         <button
           onclick="loadSampleData()"
@@ -84,7 +98,7 @@
         <button
           onclick="exportDataJSON()"
           class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-medium transition"
-          title="Export database as JSON"
+          title="Export database as JSON file"
         >
           <i class="fa-solid fa-download text-blue-400"></i>
           <span>Export JSON</span>
@@ -103,21 +117,24 @@
     <!-- Main Content Area -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-      <!-- Summary Metric Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- KPI SUMMARY METRIC CARDS (5 METRICS) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        
+        <!-- Metric 1: Total Principal Balance -->
         <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-600 transition shadow-md">
           <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Total Remaining Balance</span>
-            <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
-              <i class="fa-solid fa-circle-dollar-to-slot"></i>
+            <span>Total Principal</span>
+            <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
             </div>
           </div>
           <div class="mt-2">
-            <div id="stat-total-balance" class="text-2xl font-bold text-rose-400">₱0.00</div>
-            <div class="text-[11px] text-slate-400 mt-1">Outstanding debt across all accounts</div>
+            <div id="stat-total-principal" class="text-xl sm:text-2xl font-bold text-blue-400">₱0.00</div>
+            <div class="text-[11px] text-slate-400 mt-1">Sum of original loan amounts</div>
           </div>
         </div>
 
+        <!-- Metric 2: Total Amount Paid -->
         <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-600 transition shadow-md">
           <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
             <span>Total Amount Paid</span>
@@ -126,29 +143,45 @@
             </div>
           </div>
           <div class="mt-2">
-            <div id="stat-total-paid" class="text-2xl font-bold text-emerald-400">₱0.00</div>
-            <div class="text-[11px] text-emerald-400/80 mt-1">Cumulative payments recorded</div>
+            <div id="stat-total-paid" class="text-xl sm:text-2xl font-bold text-emerald-400">₱0.00</div>
+            <div class="text-[11px] text-emerald-400/80 mt-1">Cumulative payments logged</div>
           </div>
         </div>
 
+        <!-- Metric 3: Total Remaining Balance -->
         <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-600 transition shadow-md">
           <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Total Monthly Payment</span>
-            <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-              <i class="fa-solid fa-calendar-days"></i>
+            <span>Total Remaining</span>
+            <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+              <i class="fa-solid fa-vault"></i>
             </div>
           </div>
           <div class="mt-2">
-            <div id="stat-monthly-total" class="text-2xl font-bold text-amber-300">₱0.00</div>
-            <div class="text-[11px] text-amber-400/80 mt-1">Combined monthly amortization</div>
+            <div id="stat-total-balance" class="text-xl sm:text-2xl font-bold text-rose-400">₱0.00</div>
+            <div class="text-[11px] text-slate-400 mt-1">Current active debt balance</div>
           </div>
         </div>
 
+        <!-- Metric 4: Total Recurring Payment / Amount to Pay -->
         <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-600 transition shadow-md">
           <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Next Upcoming Due Date</span>
-            <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
-              <i class="fa-solid fa-clock"></i>
+            <span>Recurring Payment</span>
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div id="stat-monthly-total" class="text-xl sm:text-2xl font-bold text-amber-300">₱0.00</div>
+            <div class="text-[11px] text-amber-400/80 mt-1">Combined installment obligations</div>
+          </div>
+        </div>
+
+        <!-- Metric 5: Next Upcoming Due Date -->
+        <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-600 transition shadow-md">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Next Upcoming Due</span>
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+              <i class="fa-solid fa-clock-rotate-left"></i>
             </div>
           </div>
           <div class="mt-2" id="stat-next-due-container">
@@ -156,130 +189,189 @@
             <div class="text-[11px] text-slate-500 mt-1">All obligations are current</div>
           </div>
         </div>
+
       </div>
 
-      <!-- Analytics Charts Section -->
-      <div id="charts-wrapper" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-5 flex flex-col shadow-xl">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-chart-pie text-emerald-400"></i>
-              Debt Breakdown by Category
-            </h3>
-            <span class="text-[11px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-700">Categories</span>
+      <!-- MAIN CONTENT 2-COLUMN LAYOUT -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT SIDE PANEL (4 Cols): PAYOFF STRATEGY (SMALLEST TO LARGEST) + CHARTS -->
+        <div class="lg:col-span-4 space-y-6">
+          
+          <!-- PAYOFF STRATEGY SIDE WIDGET (MABABA TO MATAAS NA AMOUNT) -->
+          <div class="bg-gradient-to-b from-slate-800 to-slate-800/90 border border-blue-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between mb-3 border-b border-slate-700/70 pb-3">
+              <div>
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-fire-flame-curved text-amber-400"></i>
+                  Payoff Strategy (Snowball)
+                </h3>
+                <p class="text-[11px] text-slate-400">Sorted from Smallest to Largest Balance</p>
+              </div>
+              <span class="text-[10px] bg-amber-500/20 text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-500/30">
+                Quick Wins
+              </span>
+            </div>
+
+            <p class="text-xs text-slate-300 mb-3 leading-relaxed">
+              Target paying off the <strong class="text-emerald-400">smallest balance</strong> first to build momentum and eliminate small debts quickly!
+            </p>
+
+            <!-- Smallest to Largest List -->
+            <div id="snowball-list-container" class="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+              <!-- Dynamically populated by JS -->
+            </div>
           </div>
-          <div class="relative flex-1 min-h-[220px]">
-            <canvas id="categoryPieChart"></canvas>
+
+          <!-- CHARTS SECTION -->
+          <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-5 shadow-xl space-y-5">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                  Debt Breakdown by Category
+                </h3>
+              </div>
+              <div class="relative h-[200px] flex items-center justify-center">
+                <canvas id="categoryPieChart"></canvas>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-700/70 pt-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-chart-simple text-blue-400"></i>
+                  Installment Amortization
+                </h3>
+              </div>
+              <div class="relative h-[180px] flex items-center justify-center">
+                <canvas id="monthlyBarChart"></canvas>
+              </div>
+            </div>
           </div>
+
         </div>
 
-        <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-5 flex flex-col shadow-xl">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-chart-simple text-blue-400"></i>
-              Monthly Payment Comparison
-            </h3>
-            <span class="text-[11px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-700">Active Loans</span>
+        <!-- RIGHT MAIN PANEL (8 Cols): SEARCH, FILTERS, DEBT MASTER LIST & LEDGER -->
+        <div class="lg:col-span-8 space-y-6">
+          
+          <!-- Filters & Toolbar -->
+          <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col gap-3 shadow-md">
+            
+            <!-- Status Tabs -->
+            <div class="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700/60 overflow-x-auto">
+              <button onclick="setFilterTab('all')" id="tab-all" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap bg-blue-600 text-white shadow">
+                All (<span id="count-all">0</span>)
+              </button>
+              <button onclick="setFilterTab('active')" id="tab-active" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap text-slate-400 hover:text-white">
+                Active (<span id="count-active">0</span>)
+              </button>
+              <button onclick="setFilterTab('due_soon')" id="tab-due_soon" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap text-slate-400 hover:text-white">
+                Due Soon (<span id="count-due_soon">0</span>)
+              </button>
+              <button onclick="setFilterTab('overdue')" id="tab-overdue" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap text-slate-400 hover:text-white">
+                Overdue (<span id="count-overdue">0</span>)
+              </button>
+              <button onclick="setFilterTab('paid')" id="tab-paid" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap text-slate-400 hover:text-white">
+                Fully Paid (<span id="count-paid">0</span>)
+              </button>
+            </div>
+
+            <!-- Search, Category, Frequency & Sorting Controls -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              
+              <!-- Search Bar -->
+              <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Search debt or lender..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+                <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+
+              <!-- Category Filter -->
+              <select id="category-filter" onchange="handleCategoryFilter(this.value)" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
+                <option value="all">All Categories</option>
+              </select>
+
+              <!-- Frequency Filter -->
+              <select id="frequency-filter" onchange="handleFrequencyFilter(this.value)" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
+                <option value="all">All Frequencies</option>
+                <option value="Daily">Daily</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Bi-Weekly">Bi-Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Custom">Custom</option>
+              </select>
+
+              <!-- Sort Option -->
+              <select id="sort-select" onchange="handleSort(this.value)" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
+                <option value="dueDate">Sort: Next Due Date</option>
+                <option value="balanceAsc">Sort: Balance (Low to High)</option>
+                <option value="balanceDesc">Sort: Balance (High to Low)</option>
+                <option value="name">Sort: Lender Name</option>
+              </select>
+
+            </div>
           </div>
-          <div class="relative flex-1 min-h-[220px]">
-            <canvas id="monthlyBarChart"></canvas>
+
+          <!-- Debt List Section -->
+          <div id="debt-list-container">
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden bg-slate-800/40 border border-slate-700/50 rounded-2xl p-10 text-center flex flex-col items-center justify-center">
+              <div class="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-2xl mb-4">
+                <i class="fa-solid fa-folder-open"></i>
+              </div>
+              <h3 class="text-base font-semibold text-slate-200">No Debt Records Found</h3>
+              <p class="text-slate-400 text-xs mt-1 max-w-sm">
+                There are no personal loans matching your current search or filters. Click below to add your first loan or load sample data.
+              </p>
+              <div class="flex items-center gap-3 mt-4">
+                <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition shadow">
+                  + Add New Debt
+                </button>
+                <button onclick="loadSampleData()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold px-4 py-2 rounded-xl text-xs transition border border-slate-600">
+                  <i class="fa-solid fa-flask text-amber-400 mr-1"></i> Load Sample Data
+                </button>
+              </div>
+            </div>
+
+            <!-- Desktop Table View -->
+            <div id="desktop-table-wrapper" class="hidden md:block bg-slate-800/80 border border-slate-700/70 rounded-2xl overflow-hidden shadow-xl">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/80">
+                    <th class="py-3.5 px-4">Debt & Category</th>
+                    <th class="py-3.5 px-4">Frequency</th>
+                    <th class="py-3.5 px-4">Principal</th>
+                    <th class="py-3.5 px-4">Installment</th>
+                    <th class="py-3.5 px-4">Next Due Date</th>
+                    <th class="py-3.5 px-4">Paid & Progress</th>
+                    <th class="py-3.5 px-4">Remaining Balance</th>
+                    <th class="py-3.5 px-4">Status</th>
+                    <th class="py-3.5 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="desktop-table-body" class="divide-y divide-slate-700/60"></tbody>
+              </table>
+            </div>
+
+            <!-- Mobile Cards View -->
+            <div id="mobile-cards-wrapper" class="grid grid-cols-1 gap-3 md:hidden"></div>
           </div>
+
         </div>
+
       </div>
 
-      <!-- Filters & Toolbar -->
-      <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-4 shadow-md">
-        <div class="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700/60 w-full lg:w-auto overflow-x-auto">
-          <button onclick="setFilterTab('all')" id="tab-all" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap bg-blue-600 text-white shadow">
-            All (<span id="count-all">0</span>)
-          </button>
-          <button onclick="setFilterTab('active')" id="tab-active" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap text-slate-400 hover:text-white">
-            Active (<span id="count-active">0</span>)
-          </button>
-          <button onclick="setFilterTab('due_soon')" id="tab-due_soon" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap text-slate-400 hover:text-white">
-            Due Soon (<span id="count-due_soon">0</span>)
-          </button>
-          <button onclick="setFilterTab('overdue')" id="tab-overdue" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap text-slate-400 hover:text-white">
-            Overdue (<span id="count-overdue">0</span>)
-          </button>
-          <button onclick="setFilterTab('paid')" id="tab-paid" class="filter-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap text-slate-400 hover:text-white">
-            Fully Paid (<span id="count-paid">0</span>)
-          </button>
-        </div>
-
-        <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <select id="category-filter" onchange="handleCategoryFilter(this.value)" class="w-full sm:w-auto bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
-            <option value="all">All Categories</option>
-            <option value="Bank Loan">Bank Loan</option>
-            <option value="Credit Card">Credit Card</option>
-            <option value="Government Loan">Government Loan</option>
-            <option value="Personal Loan">Personal Loan</option>
-            <option value="Cooperative / Lending">Cooperative / Lending</option>
-            <option value="Other Obligations">Other Obligations</option>
-          </select>
-
-          <div class="relative w-full sm:w-56">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Search debt name, lender..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
-            <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
-          </div>
-
-          <select id="sort-select" onchange="handleSort(this.value)" class="w-full sm:w-auto bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
-            <option value="dueDate">Sort: Next Due Date</option>
-            <option value="name">Sort: Lender / Loan Name</option>
-            <option value="amount">Sort: Remaining Balance</option>
-            <option value="monthly">Sort: Monthly Payment</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Debt List Section -->
-      <div id="debt-list-container">
-        <div id="empty-state" class="hidden bg-slate-800/40 border border-slate-700/50 rounded-2xl p-12 text-center flex flex-col items-center justify-center">
-          <div class="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 text-2xl mb-4">
-            <i class="fa-solid fa-folder-open"></i>
-          </div>
-          <h3 class="text-base font-semibold text-slate-200">No Debt Records Found</h3>
-          <p class="text-slate-400 text-xs mt-1 max-w-sm">
-            There are no personal loans or financial obligations matching your current filters. Add a new record or load sample data.
-          </p>
-          <div class="flex items-center gap-3 mt-4">
-            <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition shadow">
-              + Add New Debt
-            </button>
-            <button onclick="loadSampleData()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold px-4 py-2 rounded-xl text-xs transition border border-slate-600">
-              <i class="fa-solid fa-flask text-amber-400 mr-1"></i> Load Sample Data
-            </button>
-          </div>
-        </div>
-
-        <div id="desktop-table-wrapper" class="hidden md:block bg-slate-800/80 border border-slate-700/70 rounded-2xl overflow-hidden shadow-xl">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/80">
-                <th class="py-3.5 px-4">Debt & Lender Name</th>
-                <th class="py-3.5 px-4">Total Principal</th>
-                <th class="py-3.5 px-4">Monthly Obligation</th>
-                <th class="py-3.5 px-4">Next Due Date</th>
-                <th class="py-3.5 px-4">Progress & Paid</th>
-                <th class="py-3.5 px-4">Remaining Balance</th>
-                <th class="py-3.5 px-4">Status</th>
-                <th class="py-3.5 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="desktop-table-body" class="divide-y divide-slate-700/60"></tbody>
-          </table>
-        </div>
-
-        <div id="mobile-cards-wrapper" class="grid grid-cols-1 gap-3 md:hidden"></div>
-      </div>
     </main>
 
+    <!-- Footer -->
     <footer class="border-t border-slate-800 py-4 px-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto w-full">
       <div>
-        Personal Debt & Loan Monitoring Tracker &copy; 2026 &bull; Cloud Powered by Supabase
+        Personal Debt & Loan Monitoring Tracker &copy; 2026 &bull; Cloud Sync & Local Storage Supported
       </div>
       <button onclick="clearAllData()" class="text-rose-400 hover:text-rose-300 text-[11px] underline">
         Clear All Cloud Data
@@ -287,9 +379,12 @@
     </footer>
   </div>
 
+  <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed top-16 right-4 z-50 pointer-events-none"></div>
 
-  <!-- MODAL 1: ADD / EDIT DEBT -->
+  <!-- ========================================== -->
+  <!-- MODAL 1: ADD / EDIT DEBT WITH CATEGORY PICKER & DUE FREQUENCY -->
+  <!-- ========================================== -->
   <div id="debt-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative my-8">
       <div class="flex items-center justify-between border-b border-slate-700 pb-4 mb-4">
@@ -304,50 +399,89 @@
 
       <form id="debt-form" onsubmit="saveDebtForm(event)" class="space-y-4">
         <input type="hidden" id="form-debt-id" value="" />
+        
+        <!-- Lender / Debt Name -->
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Debt / Lender Name *</label>
-          <input type="text" id="form-lender-name" required placeholder="e.g. Chase Mortgage, SSS Loan, Personal Loan" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+          <input type="text" id="form-lender-name" required placeholder="e.g. Chase Credit Card, SSS Salary Loan, Store Capital" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
         </div>
 
+        <!-- Custom Category Creator & Picker -->
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Category</label>
-          <select id="form-category" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer">
-            <option value="Bank Loan">Bank Loan (Personal / Housing / Auto)</option>
-            <option value="Credit Card">Credit Card / Installment</option>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-medium text-slate-300">Category *</label>
+            <span class="text-[10px] text-blue-400 cursor-pointer hover:underline" onclick="toggleCustomCategoryInput()">+ Create Custom Category</span>
+          </div>
+          
+          <!-- Dropdown Select Category -->
+          <select id="form-category-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer">
+            <option value="Bank Loan">Bank Loan (Personal / Auto / Mortgage)</option>
+            <option value="Credit Card">Credit Card / Line of Credit</option>
             <option value="Government Loan">Government Loan (SSS / Pag-IBIG / GSIS)</option>
             <option value="Personal Loan">Personal Loan (Friends / Family)</option>
             <option value="Cooperative / Lending">Cooperative / Lending</option>
+            <option value="Appliance & Equipment">Appliance & Equipment</option>
             <option value="Other Obligations">Other Financial Obligations</option>
           </select>
+
+          <!-- Input for New Custom Category (Initially Hidden) -->
+          <div id="custom-category-wrapper" class="hidden mt-2">
+            <div class="flex gap-2">
+              <input type="text" id="form-custom-category-input" placeholder="Type new category name..." class="flex-1 bg-slate-900 border border-blue-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+              <button type="button" onclick="cancelCustomCategory()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs px-3 py-2 rounded-xl">Cancel</button>
+            </div>
+          </div>
         </div>
 
+        <!-- Total Principal & Amount Paid So Far -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">Total Principal (₱) *</label>
             <input type="number" id="form-original-amount" min="1" step="any" required placeholder="10000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-semibold" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Monthly Payment (₱)</label>
-            <input type="number" id="form-monthly-payment" min="0" step="any" placeholder="450" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-semibold text-amber-300" />
+            <label class="block text-xs font-medium text-slate-300 mb-1">Amount Paid So Far (₱)</label>
+            <input type="number" id="form-initial-paid" min="0" step="any" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-400 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-semibold" />
           </div>
         </div>
 
+        <!-- Amount to Pay (Installment) & Due Frequency Picker -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Next Due Date</label>
-            <input type="date" id="form-next-due-date" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500" />
+            <label class="block text-xs font-medium text-slate-300 mb-1">Installment / Amount to Pay (₱)</label>
+            <input type="number" id="form-monthly-payment" min="0" step="any" placeholder="e.g. 500" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-semibold" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Target Completion Date</label>
-            <input type="date" id="form-target-completion-date" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500" />
+            <label class="block text-xs font-medium text-slate-300 mb-1">Payment Due Frequency *</label>
+            <select id="form-due-frequency" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer">
+              <option value="Daily">Daily</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Bi-Weekly">Bi-Weekly (Every 2 Weeks)</option>
+              <option value="Monthly" selected>Monthly</option>
+              <option value="Custom">Custom Interval</option>
+            </select>
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Notes / Account Number / Details</label>
-          <textarea id="form-notes" rows="2" placeholder="e.g. Account #98765 - Auto-debit on the 15th" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+        <!-- Next Due Date & Target Completion Date (Date Pickers) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Next Due Date *</label>
+            <input type="date" id="form-next-due-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Target Payoff Date</label>
+            <input type="date" id="form-target-completion-date" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer" />
+          </div>
         </div>
 
+        <!-- Notes / Account Reference -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Notes / Account Details</label>
+          <textarea id="form-notes" rows="2" placeholder="e.g. Ref #12345, Auto-debit on the 15th" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+
+        <!-- Submit & Cancel Buttons -->
         <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-700">
           <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition">Cancel</button>
           <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2 rounded-xl text-xs shadow-lg transition">Save Debt Record</button>
@@ -356,13 +490,15 @@
     </div>
   </div>
 
-  <!-- MODAL 2: LOG PAYMENT -->
+  <!-- ========================================== -->
+  <!-- MODAL 2: LOG PAYMENT LEDGER ENTRY          -->
+  <!-- ========================================== -->
   <div id="payment-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
       <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
         <h2 class="text-base font-bold text-white flex items-center gap-2">
           <i class="fa-solid fa-hand-holding-dollar text-emerald-400"></i>
-          Log Payment Record
+          Log Payment Ledger
         </h2>
         <button onclick="closePaymentModal()" class="text-slate-400 hover:text-white p-1">
           <i class="fa-solid fa-xmark text-lg"></i>
@@ -384,21 +520,21 @@
         <input type="hidden" id="payment-debt-id" value="" />
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Payment Amount (₱) *</label>
-          <input type="number" id="payment-amount" min="1" step="any" required placeholder="e.g. 350" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-semibold" />
+          <input type="number" id="payment-amount" min="1" step="any" required placeholder="e.g. 500" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-semibold" />
         </div>
 
         <div class="flex gap-2">
-          <button type="button" id="btn-pay-monthly" onclick="setPaymentShortcut('monthly')" class="text-[11px] bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-lg text-emerald-300 font-medium">Monthly Payment</button>
-          <button type="button" onclick="setPaymentShortcut('full')" class="text-[11px] bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-lg text-slate-300 font-medium">Pay Remaining Balance</button>
+          <button type="button" id="btn-pay-installment" onclick="setPaymentShortcut('installment')" class="text-[11px] bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-lg text-emerald-300 font-medium">Installment Amount</button>
+          <button type="button" onclick="setPaymentShortcut('full')" class="text-[11px] bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-lg text-slate-300 font-medium">Pay Full Balance</button>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">Payment Date</label>
-            <input type="date" id="payment-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+            <input type="date" id="payment-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 cursor-pointer" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Reference / Note</label>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Ref # / Payment Method</label>
             <input type="text" id="payment-notes" placeholder="e.g. Bank Ref #12345" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
           </div>
         </div>
@@ -411,7 +547,9 @@
     </div>
   </div>
 
-  <!-- MODAL 3: PAYMENT HISTORY LOGS -->
+  <!-- ========================================== -->
+  <!-- MODAL 3: PAYMENT HISTORY LOGS              -->
+  <!-- ========================================== -->
   <div id="history-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
       <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
@@ -436,7 +574,9 @@
     </div>
   </div>
 
-  <!-- MODAL 4: CONFIRM DELETE -->
+  <!-- ========================================== -->
+  <!-- MODAL 4: CONFIRM DELETE                    -->
+  <!-- ========================================== -->
   <div id="delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center">
       <div class="w-12 h-12 bg-rose-500/10 text-rose-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-rose-500/20">
@@ -453,17 +593,38 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT LOGIC WITH SUPABASE -->
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT LOGIC & SUPABASE INTEGRATION    -->
+  <!-- ========================================== -->
   <script>
-    // Supabase Configuration
-const SUPABASE_URL = 'https://awpqyxdjeidrkmflwdjh.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_ZiGxQQIy7ZvZYHQVpvYlkg_3VX9Jwf-';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Supabase Credentials
+    const SUPABASE_URL = 'https://awpqyxdjeidrkmflwdjh.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_ZiGxQQIy7ZvZYHQVpvYlkg_3VX9Jwf-';
+    
+    let supabaseClient = null;
+    try {
+      if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) {
+      console.warn("Supabase init fallback:", e);
+    }
 
-    // Global State
+    // Global App State
     let debtsState = [];
+    let customCategoriesList = [
+      "Bank Loan", 
+      "Credit Card", 
+      "Government Loan", 
+      "Personal Loan", 
+      "Cooperative / Lending",
+      "Appliance & Equipment",
+      "Other Obligations"
+    ];
+
     let currentFilterTab = 'all';
     let currentCategoryFilter = 'all';
+    let currentFrequencyFilter = 'all';
     let currentSearchTerm = '';
     let currentSortBy = 'dueDate';
     let activeDeleteDebtId = null;
@@ -471,6 +632,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
     let pieChartInstance = null;
     let barChartInstance = null;
 
+    // Currency & Date Formatter Utilities
     const formatCurrency = (val) => {
       const num = parseFloat(val) || 0;
       return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(num);
@@ -482,6 +644,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       return new Date(dateStr).toLocaleDateString('en-US', options);
     };
 
+    // Toast Alert Helper
     const showToast = (message, type = 'success') => {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
@@ -500,12 +663,15 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       }, 3500);
     };
 
+    // Compute Single Debt Calculations
     const computeDebtDetails = (debt) => {
       const originalAmount = parseFloat(debt.originalAmount) || 0;
+      const initialPaid = parseFloat(debt.initialPaid) || 0;
       const monthlyPayment = parseFloat(debt.monthlyPayment) || 0;
       const payments = debt.payments || [];
       
-      const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const ledgerPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalPaid = initialPaid + ledgerPaid;
       const remainingBalance = Math.max(0, originalAmount - totalPaid);
       const progress = originalAmount > 0 ? Math.min(100, (totalPaid / originalAmount) * 100) : 0;
 
@@ -523,115 +689,192 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
         else if (diffDays <= 7) status = 'due_soon';
       }
 
-      return { originalAmount, monthlyPayment, totalPaid, remainingBalance, progress, status };
+      return { originalAmount, initialPaid, monthlyPayment, totalPaid, remainingBalance, progress, status };
     };
 
-    // Load Data from Supabase Cloud
+    // Load Data from Supabase with LocalStorage Fallback
     const loadDebtsData = async () => {
-      try {
-        const { data, error } = await supabaseClient.from('debts').select('*');
-        if (error) throw error;
-        
-        debtsState = (data || []).map(item => ({
-          id: item.id,
-          lenderName: item.lender_name,
-          category: item.category,
-          originalAmount: item.original_amount,
-          monthlyPayment: item.monthly_payment,
-          nextDueDate: item.next_due_date,
-          targetCompletionDate: item.target_completion_date,
-          notes: item.notes,
-          payments: item.payments || []
-        }));
-      } catch (err) {
-        console.error("Error loading from Supabase:", err);
-        showToast("Hindi ma-fetch ang data sa Supabase Cloud.", "error");
-        debtsState = [];
+      let loadedFromCloud = false;
+
+      if (supabaseClient) {
+        try {
+          const { data, error } = await supabaseClient.from('debts').select('*');
+          if (!error && data) {
+            debtsState = data.map(item => ({
+              id: item.id,
+              lenderName: item.lender_name,
+              category: item.category,
+              dueFrequency: item.due_frequency || 'Monthly',
+              originalAmount: item.original_amount,
+              initialPaid: item.initial_paid || 0,
+              monthlyPayment: item.monthly_payment,
+              nextDueDate: item.next_due_date,
+              targetCompletionDate: item.target_completion_date,
+              notes: item.notes,
+              payments: item.payments || []
+            }));
+            loadedFromCloud = true;
+          }
+        } catch (err) {
+          console.warn("Cloud load failed, falling back to LocalStorage:", err);
+        }
+      }
+
+      if (!loadedFromCloud) {
+        const local = localStorage.getItem('debt_tracker_local_data');
+        if (local) {
+          try {
+            debtsState = JSON.parse(local);
+          } catch (e) { debtsState = []; }
+        }
+        document.getElementById('cloud-status-badge').innerHTML = `<i class="fa-solid fa-hard-drive mr-1"></i> Local Storage Mode`;
+        document.getElementById('cloud-status-badge').className = "text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/30 font-medium";
+      }
+
+      // Collect any custom categories present in data
+      debtsState.forEach(d => {
+        if (d.category && !customCategoriesList.includes(d.category)) {
+          customCategoriesList.push(d.category);
+        }
+      });
+
+      updateCategoryFilterOptions();
+      renderApp();
+    };
+
+    // Save Single Record to Cloud & LocalStorage
+    const saveSingleDebtToCloud = async (debt) => {
+      // Always save to LocalStorage cache first
+      const idx = debtsState.findIndex(d => d.id === debt.id);
+      if (idx !== -1) debtsState[idx] = debt;
+      else debtsState.push(debt);
+
+      localStorage.setItem('debt_tracker_local_data', JSON.stringify(debtsState));
+
+      // Attempt Supabase Upsert
+      if (supabaseClient) {
+        try {
+          const payload = {
+            id: debt.id,
+            lender_name: debt.lenderName,
+            category: debt.category,
+            due_frequency: debt.dueFrequency || 'Monthly',
+            original_amount: debt.originalAmount,
+            initial_paid: debt.initialPaid || 0,
+            monthly_payment: debt.monthlyPayment,
+            next_due_date: debt.nextDueDate,
+            target_completion_date: debt.targetCompletionDate,
+            notes: debt.notes,
+            payments: debt.payments || []
+          };
+          await supabaseClient.from('debts').upsert(payload);
+        } catch (err) {
+          console.warn("Cloud sync error:", err);
+        }
       }
       renderApp();
     };
 
-    // Save Single Record to Supabase Cloud
-    const saveSingleDebtToCloud = async (debt) => {
-      try {
-        const payload = {
-          id: debt.id,
-          lender_name: debt.lenderName,
-          category: debt.category,
-          original_amount: debt.originalAmount,
-          monthly_payment: debt.monthlyPayment,
-          next_due_date: debt.nextDueDate,
-          target_completion_date: debt.targetCompletionDate,
-          notes: debt.notes,
-          payments: debt.payments || []
-        };
-        const { error } = await supabaseClient.from('debts').upsert(payload);
-        if (error) throw error;
-      } catch (err) {
-        console.error("Error saving to Supabase:", err);
-        showToast("Failed to sync change to cloud database.", "error");
-      }
-      loadDebtsData();
-    };
-
-    // Delete Record from Supabase Cloud
+    // Delete Record from Cloud & LocalStorage
     const deleteDebtFromCloud = async (debtId) => {
-      try {
-        const { error } = await supabaseClient.from('debts').delete().eq('id', debtId);
-        if (error) throw error;
-      } catch (err) {
-        console.error("Error deleting from Supabase:", err);
-        showToast("Failed to delete record from cloud.", "error");
+      debtsState = debtsState.filter(d => d.id !== debtId);
+      localStorage.setItem('debt_tracker_local_data', JSON.stringify(debtsState));
+
+      if (supabaseClient) {
+        try {
+          await supabaseClient.from('debts').delete().eq('id', debtId);
+        } catch (err) { console.warn("Cloud delete error:", err); }
       }
-      loadDebtsData();
+      renderApp();
     };
 
+    // Load Sample Data
     const loadSampleData = async () => {
       const today = new Date();
-      const in4Days = new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const in20Days = new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const in3Days = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const in14Days = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const in25Days = new Date(today.getTime() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       const sampleDebts = [
         {
-          id: 'loan_1',
-          lenderName: 'Bank Personal Loan',
-          category: 'Bank Loan',
-          originalAmount: 120000,
-          monthlyPayment: 4500,
-          nextDueDate: in4Days,
-          targetCompletionDate: '2028-06-15',
-          notes: 'Auto-debit on the 15th',
+          id: 'loan_sample_1',
+          lenderName: 'Store Capital Loan',
+          category: 'Personal Loan',
+          dueFrequency: 'Weekly',
+          originalAmount: 8500,
+          initialPaid: 1500,
+          monthlyPayment: 500,
+          nextDueDate: in3Days,
+          targetCompletionDate: '2026-12-30',
+          notes: 'Weekly payment every Friday',
           payments: [
-            { id: 'p1', amount: 4500, date: '2026-09-15', notes: 'Automated Bank Transfer' },
-            { id: 'p2', amount: 4500, date: '2026-10-15', notes: 'Automated Bank Transfer' }
+            { id: 'p1', amount: 500, date: '2026-10-20', notes: 'Cash payment' }
           ]
         },
         {
-          id: 'loan_2',
-          lenderName: 'Credit Card Obligation',
+          id: 'loan_sample_2',
+          lenderName: 'Chase Credit Card',
           category: 'Credit Card',
+          dueFrequency: 'Monthly',
           originalAmount: 45000,
+          initialPaid: 5000,
           monthlyPayment: 3000,
-          nextDueDate: in20Days,
-          targetCompletionDate: '2027-02-01',
-          notes: '0% Interest installment',
-          payments: [{ id: 'p3', amount: 3000, date: '2026-10-01', notes: 'Online Bill Pay' }]
+          nextDueDate: in14Days,
+          targetCompletionDate: '2027-06-15',
+          notes: 'Statement due on 15th',
+          payments: [
+            { id: 'p2', amount: 3000, date: '2026-10-15', notes: 'Bank Transfer' }
+          ]
+        },
+        {
+          id: 'loan_sample_3',
+          lenderName: 'SSS Salary Loan',
+          category: 'Government Loan',
+          dueFrequency: 'Bi-Weekly',
+          originalAmount: 24000,
+          initialPaid: 12000,
+          monthlyPayment: 1000,
+          nextDueDate: in25Days,
+          targetCompletionDate: '2027-01-15',
+          notes: 'Payroll auto-deduct',
+          payments: []
         }
       ];
 
       for (const d of sampleDebts) {
         await saveSingleDebtToCloud(d);
       }
-      showToast('Sample data uploaded to Supabase!');
+      showToast('Sample loan data loaded successfully!');
     };
 
+    // Update Category Dropdowns
+    const updateCategoryFilterOptions = () => {
+      const filterSelect = document.getElementById('category-filter');
+      const modalSelect = document.getElementById('form-category-select');
+
+      const currentFilterVal = filterSelect.value;
+      const currentModalVal = modalSelect.value;
+
+      filterSelect.innerHTML = `<option value="all">All Categories</option>` +
+        customCategoriesList.map(c => `<option value="${c}">${c}</option>`).join('');
+
+      modalSelect.innerHTML = customCategoriesList.map(c => `<option value="${c}">${c}</option>`).join('');
+
+      filterSelect.value = currentFilterVal;
+      modalSelect.value = currentModalVal || customCategoriesList[0];
+    };
+
+    // Main App Renderer
     const renderApp = () => {
       renderSummaryKPIs();
+      renderSnowballPayoffWidget();
       renderCharts();
       renderList();
     };
 
+    // Render 5 KPI Metrics
     const renderSummaryKPIs = () => {
+      let totalPrincipal = 0;
       let totalBalance = 0;
       let totalPaidSoFar = 0;
       let totalMonthly = 0;
@@ -645,6 +888,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
       debtsState.forEach(debt => {
         const calc = computeDebtDetails(debt);
+        totalPrincipal += calc.originalAmount;
         totalBalance += calc.remainingBalance;
         totalPaidSoFar += calc.totalPaid;
 
@@ -667,6 +911,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
         if (calc.status === 'paid') paidCount++;
       });
 
+      document.getElementById('stat-total-principal').textContent = formatCurrency(totalPrincipal);
       document.getElementById('stat-total-balance').textContent = formatCurrency(totalBalance);
       document.getElementById('stat-total-paid').textContent = formatCurrency(totalPaidSoFar);
       document.getElementById('stat-monthly-total').textContent = formatCurrency(totalMonthly);
@@ -675,7 +920,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       if (nextUpcomingItem) {
         nextDueContainer.innerHTML = `
           <div class="text-sm font-bold text-white truncate">${nextUpcomingItem.lenderName}</div>
-          <div class="text-xs font-semibold text-blue-400 mt-0.5">
+          <div class="text-xs font-semibold text-indigo-400 mt-0.5">
             ${formatDate(nextUpcomingItem.nextDueDate)} &bull; ${formatCurrency(nextUpcomingItem.amount)}
           </div>
         `;
@@ -693,14 +938,65 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       document.getElementById('count-paid').textContent = paidCount;
     };
 
-    const renderCharts = () => {
-      const chartsWrapper = document.getElementById('charts-wrapper');
-      if (!debtsState || debtsState.length === 0) {
-        chartsWrapper.classList.add('hidden');
+    // Render Side Payoff Strategy Widget (Mababa to Mataas na Amount)
+    const renderSnowballPayoffWidget = () => {
+      const container = document.getElementById('snowball-list-container');
+      
+      const activeDebts = debtsState
+        .map(d => ({ ...d, calc: computeDebtDetails(d) }))
+        .filter(d => d.calc.remainingBalance > 0)
+        .sort((a, b) => a.calc.remainingBalance - b.calc.remainingBalance); // Smallest to Largest
+
+      if (activeDebts.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-6 text-slate-400 text-xs italic">
+            <i class="fa-solid fa-trophy text-amber-400 text-lg mb-1 block"></i>
+            No active debts! You are debt free!
+          </div>
+        `;
         return;
       }
-      chartsWrapper.classList.remove('hidden');
 
+      container.innerHTML = activeDebts.map((debt, index) => {
+        const isTopTarget = index === 0;
+        return `
+          <div class="p-3 rounded-xl border transition-all ${
+            isTopTarget 
+              ? 'bg-amber-500/10 border-amber-500/40 shadow-lg shadow-amber-500/5 ring-1 ring-amber-500/30' 
+              : 'bg-slate-900/60 border-slate-700/60 hover:border-slate-600'
+          }">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center space-x-2">
+                <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                  isTopTarget ? 'bg-amber-400 text-slate-950' : 'bg-slate-700 text-slate-300'
+                }">
+                  #${index + 1}
+                </span>
+                <span class="font-bold text-xs text-white truncate max-w-[130px]">${debt.lenderName}</span>
+              </div>
+              <span class="text-xs font-extrabold text-rose-400">${formatCurrency(debt.calc.remainingBalance)}</span>
+            </div>
+
+            <div class="flex items-center justify-between text-[10px] text-slate-400 mb-2">
+              <span>Freq: <strong class="text-slate-300">${debt.dueFrequency || 'Monthly'}</strong></span>
+              <span>Due: <strong class="${debt.calc.status === 'overdue' ? 'text-rose-400' : 'text-slate-300'}">${formatDate(debt.nextDueDate)}</strong></span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <div class="flex-1 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div class="bg-emerald-400 h-full" style="width: ${debt.calc.progress}%"></div>
+              </div>
+              <button onclick="openPaymentModal('${debt.id}')" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-bold px-2.5 py-1 rounded-lg transition shrink-0">
+                <i class="fa-solid fa-plus-circle mr-1"></i>Pay
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
+    // Render Analytics Charts
+    const renderCharts = () => {
       const categoriesMap = {};
       debtsState.forEach(debt => {
         const calc = computeDebtDetails(debt);
@@ -732,7 +1028,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } } },
+              legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 10 } } },
               tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${formatCurrency(ctx.raw)}` } }
             }
           }
@@ -743,7 +1039,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
         .map(d => ({ ...d, calc: computeDebtDetails(d) }))
         .filter(d => d.calc.remainingBalance > 0);
 
-      const barLabels = activeDebts.map(d => d.lenderName);
+      const barLabels = activeDebts.map(d => d.lenderName.length > 12 ? d.lenderName.substring(0, 10) + '...' : d.lenderName);
       const barData = activeDebts.map(d => d.calc.monthlyPayment);
 
       const barCanvas = document.getElementById('monthlyBarChart');
@@ -752,12 +1048,12 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
         barChartInstance = new Chart(barCanvas.getContext('2d'), {
           type: 'bar',
           data: {
-            labels: barLabels.length > 0 ? barLabels : ['No Active Obligations'],
+            labels: barLabels.length > 0 ? barLabels : ['No Active Loans'],
             datasets: [{
-              label: 'Monthly Payment',
+              label: 'Installment Amount',
               data: barData.length > 0 ? barData : [0],
-              backgroundColor: '#10b981',
-              borderRadius: 6
+              backgroundColor: '#f59e0b',
+              borderRadius: 5
             }]
           },
           options: {
@@ -765,17 +1061,18 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
             maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
-              tooltip: { callbacks: { label: (ctx) => ` Monthly Obligation: ${formatCurrency(ctx.raw)}` } }
+              tooltip: { callbacks: { label: (ctx) => ` Installment: ${formatCurrency(ctx.raw)}` } }
             },
             scales: {
-              x: { ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }, grid: { display: false } },
-              y: { ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }, grid: { color: '#334155' } }
+              x: { ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 } }, grid: { display: false } },
+              y: { ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 } }, grid: { color: '#334155' } }
             }
           }
         });
       }
     };
 
+    // Filter & Sorting Computation
     const getFilteredDebts = () => {
       return debtsState
         .map(d => ({ ...d, calc: computeDebtDetails(d) }))
@@ -785,7 +1082,9 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
                             debt.category?.toLowerCase().includes(search) ||
                             debt.notes?.toLowerCase().includes(search);
           if (!matchSearch) return false;
+
           if (currentCategoryFilter !== 'all' && debt.category !== currentCategoryFilter) return false;
+          if (currentFrequencyFilter !== 'all' && (debt.dueFrequency || 'Monthly') !== currentFrequencyFilter) return false;
 
           if (currentFilterTab === 'active') return debt.calc.status === 'active' || debt.calc.status === 'due_soon';
           if (currentFilterTab === 'due_soon') return debt.calc.status === 'due_soon';
@@ -795,13 +1094,14 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
         })
         .sort((a, b) => {
           if (currentSortBy === 'dueDate') return new Date(a.nextDueDate || '9999-12-31') - new Date(b.nextDueDate || '9999-12-31');
+          if (currentSortBy === 'balanceAsc') return a.calc.remainingBalance - b.calc.remainingBalance;
+          if (currentSortBy === 'balanceDesc') return b.calc.remainingBalance - a.calc.remainingBalance;
           if (currentSortBy === 'name') return (a.lenderName || '').localeCompare(b.lenderName || '');
-          if (currentSortBy === 'amount') return b.calc.remainingBalance - a.calc.remainingBalance;
-          if (currentSortBy === 'monthly') return b.calc.monthlyPayment - a.calc.monthlyPayment;
           return 0;
         });
     };
 
+    // Render Master Debt List
     const renderList = () => {
       const filtered = getFilteredDebts();
       const emptyState = document.getElementById('empty-state');
@@ -841,13 +1141,18 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
                 <span class="bg-slate-900 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60">${debt.category || 'Personal'}</span>
               </div>
             </td>
+            <td class="py-3.5 px-4">
+              <span class="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded text-[11px] font-medium">
+                ${debt.dueFrequency || 'Monthly'}
+              </span>
+            </td>
             <td class="py-3.5 px-4 font-medium text-slate-300">${formatCurrency(calc.originalAmount)}</td>
             <td class="py-3.5 px-4 font-semibold text-amber-300">${calc.monthlyPayment > 0 ? formatCurrency(calc.monthlyPayment) : 'N/A'}</td>
             <td class="py-3.5 px-4">
               <div class="font-semibold text-slate-200">${formatDate(debt.nextDueDate)}</div>
               ${debt.targetCompletionDate ? `<div class="text-[10px] text-slate-500">Target: ${formatDate(debt.targetCompletionDate)}</div>` : ''}
             </td>
-            <td class="py-3.5 px-4 w-40">
+            <td class="py-3.5 px-4 w-36">
               <div class="flex justify-between items-center text-[11px] mb-1">
                 <span class="text-emerald-400 font-medium">${formatCurrency(calc.totalPaid)}</span>
                 <span class="text-slate-400 font-bold">${Math.round(calc.progress)}%</span>
@@ -869,7 +1174,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
                     <i class="fa-solid fa-hand-holding-dollar text-xs"></i>
                   </button>
                 ` : ''}
-                <button onclick="openHistoryModal('${debt.id}')" title="Payment History Logs" class="bg-slate-700/60 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-600 transition">
+                <button onclick="openHistoryModal('${debt.id}')" title="Payment History Ledger" class="bg-slate-700/60 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-600 transition">
                   <i class="fa-solid fa-receipt text-xs"></i>
                 </button>
                 <button onclick="openEditModal('${debt.id}')" title="Edit Record" class="bg-slate-700/60 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-600 transition">
@@ -891,9 +1196,14 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
             <div class="flex items-start justify-between border-b border-slate-700/60 pb-2.5">
               <div>
                 <h3 class="font-bold text-white text-base">${debt.lenderName}</h3>
-                <span class="text-[10px] bg-slate-900 text-slate-300 px-2 py-0.5 rounded border border-slate-700 inline-block mt-1">
-                  ${debt.category || 'Personal Loan'}
-                </span>
+                <div class="flex items-center gap-1.5 mt-1">
+                  <span class="text-[10px] bg-slate-900 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                    ${debt.category || 'Personal'}
+                  </span>
+                  <span class="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded">
+                    ${debt.dueFrequency || 'Monthly'}
+                  </span>
+                </div>
               </div>
               <div class="text-right">
                 <div class="font-bold text-sm ${calc.remainingBalance > 0 ? 'text-rose-400' : 'text-slate-400 line-through'}">
@@ -909,7 +1219,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
                 <div class="font-semibold text-slate-200">${formatCurrency(calc.originalAmount)}</div>
               </div>
               <div>
-                <span class="text-slate-400">Monthly Payment:</span>
+                <span class="text-slate-400">Installment Amount:</span>
                 <div class="font-semibold text-amber-300">${formatCurrency(calc.monthlyPayment)}</div>
               </div>
               <div>
@@ -953,6 +1263,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       }).join('');
     };
 
+    // Filter Tab Switchers
     const setFilterTab = (tab) => {
       currentFilterTab = tab;
       document.querySelectorAll('.filter-tab-btn').forEach(btn => {
@@ -964,6 +1275,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
     };
 
     const handleCategoryFilter = (val) => { currentCategoryFilter = val; renderList(); };
+    const handleFrequencyFilter = (val) => { currentFrequencyFilter = val; renderList(); };
     const handleSearch = (val) => {
       currentSearchTerm = val;
       const clearBtn = document.getElementById('clear-search-btn');
@@ -974,13 +1286,28 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
     const clearSearch = () => { document.getElementById('search-input').value = ''; handleSearch(''); };
     const handleSort = (val) => { currentSortBy = val; renderList(); };
 
+    // Custom Category Creator Handlers
+    const toggleCustomCategoryInput = () => {
+      document.getElementById('custom-category-wrapper').classList.remove('hidden');
+      document.getElementById('form-custom-category-input').focus();
+    };
+
+    const cancelCustomCategory = () => {
+      document.getElementById('custom-category-wrapper').classList.add('hidden');
+      document.getElementById('form-custom-category-input').value = '';
+    };
+
+    // Add / Edit Modal Controls
     const openAddModal = () => {
       document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-file-signature text-blue-400"></i> Add New Debt Record`;
       document.getElementById('form-debt-id').value = '';
       document.getElementById('form-lender-name').value = '';
-      document.getElementById('form-category').value = 'Bank Loan';
+      document.getElementById('form-category-select').value = customCategoriesList[0] || 'Bank Loan';
+      cancelCustomCategory();
       document.getElementById('form-original-amount').value = '';
+      document.getElementById('form-initial-paid').value = '';
       document.getElementById('form-monthly-payment').value = '';
+      document.getElementById('form-due-frequency').value = 'Monthly';
       document.getElementById('form-next-due-date').value = new Date().toISOString().split('T')[0];
       document.getElementById('form-target-completion-date').value = '';
       document.getElementById('form-notes').value = '';
@@ -993,9 +1320,18 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-blue-400"></i> Edit Debt Record`;
       document.getElementById('form-debt-id').value = debt.id;
       document.getElementById('form-lender-name').value = debt.lenderName || '';
-      document.getElementById('form-category').value = debt.category || 'Bank Loan';
+
+      if (debt.category && !customCategoriesList.includes(debt.category)) {
+        customCategoriesList.push(debt.category);
+        updateCategoryFilterOptions();
+      }
+      document.getElementById('form-category-select').value = debt.category || customCategoriesList[0];
+      cancelCustomCategory();
+
       document.getElementById('form-original-amount').value = debt.originalAmount || '';
+      document.getElementById('form-initial-paid').value = debt.initialPaid || '';
       document.getElementById('form-monthly-payment').value = debt.monthlyPayment || '';
+      document.getElementById('form-due-frequency').value = debt.dueFrequency || 'Monthly';
       document.getElementById('form-next-due-date').value = debt.nextDueDate || '';
       document.getElementById('form-target-completion-date').value = debt.targetCompletionDate || '';
       document.getElementById('form-notes').value = debt.notes || '';
@@ -1004,19 +1340,33 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
     const closeAddModal = () => { document.getElementById('debt-modal').classList.add('hidden'); };
 
+    // Save Debt Form
     const saveDebtForm = async (e) => {
       e.preventDefault();
       const id = document.getElementById('form-debt-id').value;
       const lenderName = document.getElementById('form-lender-name').value.trim();
-      const category = document.getElementById('form-category').value;
+      
+      // Check if custom category typed
+      const customCatInput = document.getElementById('form-custom-category-input').value.trim();
+      let category = document.getElementById('form-category-select').value;
+      if (customCatInput) {
+        category = customCatInput;
+        if (!customCategoriesList.includes(category)) {
+          customCategoriesList.push(category);
+          updateCategoryFilterOptions();
+        }
+      }
+
       const originalAmount = parseFloat(document.getElementById('form-original-amount').value);
+      const initialPaid = parseFloat(document.getElementById('form-initial-paid').value) || 0;
       const monthlyPayment = parseFloat(document.getElementById('form-monthly-payment').value) || 0;
+      const dueFrequency = document.getElementById('form-due-frequency').value;
       const nextDueDate = document.getElementById('form-next-due-date').value;
       const targetCompletionDate = document.getElementById('form-target-completion-date').value;
       const notes = document.getElementById('form-notes').value.trim();
 
-      if (!lenderName || !originalAmount) {
-        showToast('Please specify the lender name and total loan principal.', 'error');
+      if (!lenderName || !originalAmount || !nextDueDate) {
+        showToast('Please fill in required fields: Lender Name, Principal, Next Due Date.', 'error');
         return;
       }
 
@@ -1025,21 +1375,22 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
         const existing = debtsState.find(d => d.id === id);
         debtToSave = {
           ...existing,
-          lenderName, category, originalAmount, monthlyPayment, nextDueDate, targetCompletionDate, notes
+          lenderName, category, dueFrequency, originalAmount, initialPaid, monthlyPayment, nextDueDate, targetCompletionDate, notes
         };
       } else {
         debtToSave = {
           id: 'debt_' + Date.now(),
-          lenderName, category, originalAmount, monthlyPayment, nextDueDate, targetCompletionDate, notes,
+          lenderName, category, dueFrequency, originalAmount, initialPaid, monthlyPayment, nextDueDate, targetCompletionDate, notes,
           payments: [], createdAt: new Date().toISOString()
         };
       }
 
       await saveSingleDebtToCloud(debtToSave);
-      showToast('Debt record saved to Supabase cloud!');
+      showToast('Debt record saved successfully!');
       closeAddModal();
     };
 
+    // Log Payment Modal
     const openPaymentModal = (debtId) => {
       const debt = debtsState.find(d => d.id === debtId);
       if (!debt) return;
@@ -1050,14 +1401,14 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       document.getElementById('payment-modal-balance').textContent = formatCurrency(calc.remainingBalance);
       document.getElementById('payment-amount').value = debt.monthlyPayment || '';
       document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('payment-notes').value = 'Bank Transfer / Online Pay';
+      document.getElementById('payment-notes').value = 'Bank Transfer / Cash';
 
-      const btnMonthly = document.getElementById('btn-pay-monthly');
+      const btnInstallment = document.getElementById('btn-pay-installment');
       if (debt.monthlyPayment > 0) {
-        btnMonthly.classList.remove('hidden');
-        btnMonthly.textContent = `Monthly Amount (${formatCurrency(debt.monthlyPayment)})`;
+        btnInstallment.classList.remove('hidden');
+        btnInstallment.textContent = `Installment (${formatCurrency(debt.monthlyPayment)})`;
       } else {
-        btnMonthly.classList.add('hidden');
+        btnInstallment.classList.add('hidden');
       }
       document.getElementById('payment-modal').classList.remove('hidden');
     };
@@ -1070,7 +1421,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       if (!debt) return;
       const calc = computeDebtDetails(debt);
 
-      if (type === 'monthly') document.getElementById('payment-amount').value = debt.monthlyPayment || 0;
+      if (type === 'installment') document.getElementById('payment-amount').value = debt.monthlyPayment || 0;
       else if (type === 'full') document.getElementById('payment-amount').value = calc.remainingBalance;
     };
 
@@ -1090,12 +1441,23 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       if (debt) {
         if (!debt.payments) debt.payments = [];
         debt.payments.push({ id: 'pay_' + Date.now(), amount, date, notes });
+
         await saveSingleDebtToCloud(debt);
-        showToast(`Logged payment of ${formatCurrency(amount)} successfully!`);
+        
+        // Confetti celebration if fully paid
+        const updatedCalc = computeDebtDetails(debt);
+        if (updatedCalc.remainingBalance <= 0) {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          showToast(`Congratulations! ${debt.lenderName} is fully paid! 🎉`);
+        } else {
+          showToast(`Logged payment of ${formatCurrency(amount)} successfully!`);
+        }
+        
         closePaymentModal();
       }
     };
 
+    // Payment History Modal
     const openHistoryModal = (debtId) => {
       const debt = debtsState.find(d => d.id === debtId);
       if (!debt) return;
@@ -1116,7 +1478,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
                 ${formatDate(p.date)} &bull; <span class="text-slate-300">${p.notes || 'Online Payment'}</span>
               </div>
             </div>
-            <button onclick="deletePaymentEntry('${debt.id}', '${p.id}')" title="Delete payment log" class="text-slate-500 hover:text-rose-400 p-1.5 transition">
+            <button onclick="deletePaymentEntry('${debt.id}', '${p.id}')" title="Delete payment entry" class="text-slate-500 hover:text-rose-400 p-1.5 transition">
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
@@ -1137,11 +1499,12 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       }
     };
 
+    // Delete Modal
     const openDeleteModal = (debtId) => {
       const debt = debtsState.find(d => d.id === debtId);
       if (!debt) return;
       activeDeleteDebtId = debtId;
-      document.getElementById('delete-modal-text').innerHTML = `Are you sure you want to delete <strong class="text-white">${debt.lenderName}</strong>? All recorded payment history will be permanently erased.`;
+      document.getElementById('delete-modal-text').innerHTML = `Are you sure you want to delete <strong class="text-white">${debt.lenderName}</strong>? All recorded payment history will be erased.`;
       document.getElementById('delete-modal').classList.remove('hidden');
     };
 
@@ -1153,10 +1516,11 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
     const executeDelete = async () => {
       if (!activeDeleteDebtId) return;
       await deleteDebtFromCloud(activeDeleteDebtId);
-      showToast('Debt record deleted permanently from cloud.');
+      showToast('Debt record deleted permanently.');
       closeDeleteModal();
     };
 
+    // Export JSON Backup
     const exportDataJSON = () => {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(debtsState, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -1168,16 +1532,20 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       showToast('Exported debt records to JSON file!');
     };
 
+    // Clear All Data
     const clearAllData = async () => {
-      if (confirm("Are you sure you want to clear all debt records in Supabase? This cannot be undone.")) {
-        for (const debt of debtsState) {
-          await supabaseClient.from('debts').delete().eq('id', debt.id);
+      if (confirm("Are you sure you want to clear all debt records? This cannot be undone.")) {
+        for (const debt of [...debtsState]) {
+          await deleteDebtFromCloud(debt.id);
         }
-        await loadDebtsData();
-        showToast('All cloud data cleared.', 'error');
+        debtsState = [];
+        localStorage.removeItem('debt_tracker_local_data');
+        renderApp();
+        showToast('All cloud and local data cleared.', 'error');
       }
     };
 
+    // App Initialize on Window Load
     window.onload = () => {
       loadDebtsData();
     };
