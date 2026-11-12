@@ -839,6 +839,16 @@
     // =========================================================================
     // 3. FORMATTING & DATE HELPERS
     // =========================================================================
+    const escapeHTML = (str) => {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+
     const formatCurrency = (val) => {
       const num = parseFloat(val) || 0;
       return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(num);
@@ -896,7 +906,7 @@
       return `${y}-${m}-${d}`;
     };
 
-    // Toast Notification Helper (100% English)
+    // Toast Notification Helper
     const showToast = (message, type = 'success') => {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
@@ -1069,11 +1079,9 @@
         return;
       }
 
-      // Update in customCategories list
       customCategories = customCategories.map(c => (c === oldName ? newName : c));
       saveCustomCategoriesToStorage();
 
-      // Update any debts that belong to oldName
       const affectedDebts = debtsState.filter(d => d.category === oldName);
       for (const debt of affectedDebts) {
         debt.category = newName;
@@ -1090,7 +1098,6 @@
       customCategories = customCategories.filter(c => c !== catName);
       saveCustomCategoriesToStorage();
 
-      // Unassign category on debts that used this deleted category so it doesn't resurrect on reload
       const affectedDebts = debtsState.filter(d => d.category === catName);
       for (const debt of affectedDebts) {
         debt.category = '';
@@ -1246,7 +1253,6 @@
 
       setCloudBadgeStatus(cloudConnected);
 
-      // Merge any unique categories present on loaded debts into customCategories
       let addedNewCat = false;
       debtsState.forEach(d => {
         const cat = (d.category || '').trim();
@@ -1266,7 +1272,6 @@
 
     // Upsert Single Debt Record to Supabase with Defensive Fallback if 'due_frequency' column is missing
     const saveSingleDebtToCloud = async (debt, silent = false) => {
-      // Update local state & localStorage immediately
       const idx = debtsState.findIndex(d => d.id === debt.id);
       if (idx !== -1) debtsState[idx] = debt;
       else debtsState.push(debt);
@@ -1291,7 +1296,6 @@
         try {
           const { error } = await supabaseClient.from('debts').upsert(basePayload);
           if (error) {
-            // Defensive fallback: retry without 'due_frequency' if column is missing in Supabase
             const { due_frequency, ...fallbackPayload } = basePayload;
             const retryRes = await supabaseClient.from('debts').upsert(fallbackPayload);
             if (retryRes.error) throw retryRes.error;
@@ -1460,13 +1464,6 @@
         });
       }
 
-      // 2. Bar Chart: Installment & Balance Comparison
-      const activeDebts = debtsState
-        .map(d => ({ ...d, calc: computeDebtDetails(d) }))
-        .filter(d => d.calc.remainingBalance > 0);
-
-      const barLabels = activeDebts.map(d =>
-        d.lenderName.length > 14 ? d.lenderName.substring(0, 12) + '...' : d.lenderName
       // 2. Bar Chart: Installment Payment Comparison
       const activeDebts = debtsState
         .map(d => ({ ...d, calc: computeDebtDetails(d) }))
@@ -1927,7 +1924,6 @@
       const id = document.getElementById('form-debt-id').value;
       const lenderName = document.getElementById('form-lender-name').value.trim();
 
-      // If user typed in inline category field and forgot to click "+ Add", auto-create it too!
       const inlineNewCat = document.getElementById('inline-new-category-input').value.trim();
       let category = document.getElementById('form-category-select').value;
       if (inlineNewCat) {
